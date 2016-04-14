@@ -4,17 +4,22 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.camera2.params.BlackLevelPattern;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,9 +37,9 @@ public class BluetoothActivity extends AppCompatActivity {
     ListView listView;
     ArrayAdapter<String> listAdapter;
     static BluetoothAdapter btAdapter;
-    Set<BluetoothDevice> devices;
+    Set<BluetoothDevice> devicesArray;
     ArrayList<String> pairedDevices;
-    ArrayList<BluetoothDevice> deives;
+    ArrayList<BluetoothDevice> devices;
     IntentFilter filter;
     BroadcastReceiver receiver;
 
@@ -44,9 +49,68 @@ public class BluetoothActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth);
         init();
+        if(btAdapter==null){
+            Toast.makeText(getApplicationContext(), "No BT detected", 0).show();
+        } else{
+            if(!btAdapter.isEnabled()){
+                turnOnBT();
+            }
+            getPairedDevices();
+            startDiscovery();
+        }
+    }
+    private void getPairedDevices(){
+        btAdapter.cancelDiscovery();
+        btAdapter.startDiscovery();
+    }
+    private void turnOnBT(){
+        Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        startActivityForResult(intent, 1);
+    }
+    private void startDiscovery(){
+        devicesArray = btAdapter.getBondedDevices();
+        if(devicesArray.size()>0){
+            for(BluetoothDevice device:devicesArray){
+                pairedDevices.add(device.getName());
+            }
+        }
     }
     private void init(){
+        listView = (ListView) findViewById(R.id.listView);
+        listView.setOnItemClickListener(this);
+        listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,0);
+        listView.setAdapter(listAdapter);
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
+        pairedDevices = new ArrayList<>();
+        filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        devices = new ArrayList<BluetoothDevice>();
+        //Setting up the Broadcast Receiver
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if(BluetoothDevice.ACTION_FOUND.equals(action)){
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    devices.add(device);
+                    String s = "";
+                    for(int a = 0;a<pairedDevices.size();a++){
+                        if(device.getName().equals(pairedDevices.get(a))){
+                            s = "(Paired)";
+                            break;
+                        }
+                    }
+                    listAdapter.add(device.getName()+" "+s+" "+"\n"+device.getAddress());
+                } else if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)){
 
+                } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)){
+
+                }else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)){
+                    if (btAdapter.getState() == btAdapter.STATE_OFF){
+                        turnOnBT();
+                    }
+                }
+            }
+        }
     }
     private class ConnectThread extends Thread {
         private final BluetoothSocket mmSocket;
