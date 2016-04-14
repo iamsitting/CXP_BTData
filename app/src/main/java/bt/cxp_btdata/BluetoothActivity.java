@@ -11,6 +11,8 @@ import android.hardware.camera2.params.BlackLevelPattern;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -23,7 +25,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class BluetoothActivity extends AppCompatActivity {
+public class BluetoothActivity extends AppCompatActivity implements AdapterView.OnItemClickListener{
+
+    public static void disconnect(){
+        if (connectedThread != null){
+            connectedThread.cancel();
+            connectedThread = null;
+        }
+    }
 
     public static void getHandler(Handler handler){
         mHandler = handler;
@@ -50,7 +59,7 @@ public class BluetoothActivity extends AppCompatActivity {
         setContentView(R.layout.activity_bluetooth);
         init();
         if(btAdapter==null){
-            Toast.makeText(getApplicationContext(), "No BT detected", 0).show();
+            Toast.makeText(getApplicationContext(), "No BT detected", Toast.LENGTH_SHORT).show();
         } else{
             if(!btAdapter.isEnabled()){
                 turnOnBT();
@@ -110,6 +119,33 @@ public class BluetoothActivity extends AppCompatActivity {
                     }
                 }
             }
+        };
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        unregisterReceiver(receiver);
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode == RESULT_CANCELED){
+            Toast.makeText(getApplicationContext(), "Bluetooth must be enabled to continue", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3){
+        if (btAdapter.isDiscovering()){
+            btAdapter.cancelDiscovery();
+        }
+        if (listAdapter.getItem(arg2).contains("(PairedP")){
+            BluetoothDevice selectedDevice = devices.get(arg2);
+            ConnectThread connect = new ConnectThread(selectedDevice);
+            connect.start();
+        } else {
+            Toast.makeText(getApplicationContext(), "device is not paired", Toast.LENGTH_SHORT).show();
         }
     }
     private class ConnectThread extends Thread {
