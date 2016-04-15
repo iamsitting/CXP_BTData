@@ -11,6 +11,7 @@ import android.hardware.camera2.params.BlackLevelPattern;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -59,6 +60,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         setContentView(R.layout.activity_bluetooth);
         init();
         if(btAdapter==null){
+            Log.i("btadapter", "No BT Detected");
             Toast.makeText(getApplicationContext(), "No BT detected", Toast.LENGTH_SHORT).show();
         } else{
             if(!btAdapter.isEnabled()){
@@ -68,7 +70,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
             startDiscovery();
         }
     }
-    private void getPairedDevices(){
+    private void startDiscovery(){
         btAdapter.cancelDiscovery();
         btAdapter.startDiscovery();
     }
@@ -76,11 +78,13 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
         startActivityForResult(intent, 1);
     }
-    private void startDiscovery(){
+    private void getPairedDevices(){
         devicesArray = btAdapter.getBondedDevices();
+        Log.i("# of devs", Integer.toString(devicesArray.size()));
         if(devicesArray.size()>0){
             for(BluetoothDevice device:devicesArray){
                 pairedDevices.add(device.getName());
+                Log.i("dev_name", device.getName());
             }
         }
     }
@@ -90,15 +94,21 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,0);
         listView.setAdapter(listAdapter);
         btAdapter = BluetoothAdapter.getDefaultAdapter();
-        pairedDevices = new ArrayList<>();
+        pairedDevices = new ArrayList<String>();
         filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         devices = new ArrayList<BluetoothDevice>();
         //Setting up the Broadcast Receiver
+        Log.i("Check", "BT init");
+
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                Log.i("Check", "OnReceive");
                 String action = intent.getAction();
+                Log.i("Check Action", action);
+                Log.i("# of p-devs", Integer.toString(pairedDevices.size()));
                 if(BluetoothDevice.ACTION_FOUND.equals(action)){
+                    Log.i("Check", "DeviceFound");
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     devices.add(device);
                     String s = "";
@@ -121,12 +131,15 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
             }
         };
 
+
         registerReceiver(receiver, filter);
-        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
         registerReceiver(receiver, filter);
         filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         registerReceiver(receiver, filter);
         filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(receiver, filter);
+        Log.i("Check", "End init()");
     }
 
     @Override
@@ -147,7 +160,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         if (btAdapter.isDiscovering()){
             btAdapter.cancelDiscovery();
         }
-        if (listAdapter.getItem(arg2).contains("(PairedP")){
+        if (listAdapter.getItem(arg2).contains("(Paired)")){
             BluetoothDevice selectedDevice = devices.get(arg2);
             ConnectThread connect = new ConnectThread(selectedDevice);
             connect.start();

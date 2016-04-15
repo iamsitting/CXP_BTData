@@ -101,12 +101,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
 
         //change orientation and window look
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         //change background color
@@ -161,8 +161,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v){
         switch(v.getId()){
             case R.id.bConnect:
-                Intent clientIntent = new Intent(MainActivity.this, BluetoothActivity.class);
-                startActivity(clientIntent);
+                startActivity(new Intent("android.intent.action.BT1"));
+
                 break;
             case R.id.bDisconnect:
                 BluetoothActivity.disconnect();
