@@ -194,7 +194,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         }
     }
 
-    private class ConnectedThread extends Thread {
+    class ConnectedThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
