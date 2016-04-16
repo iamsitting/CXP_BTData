@@ -21,6 +21,7 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +42,8 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
     static Handler mHandler = new Handler();
     static ConnectedThread connectedThread;
     public static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    //public static final UUID MY_UUID = UUID.fromString("00001801-0000-1000-8000-00805F9B34FB");
+    //public static final UUID MY_UUID = UUID.fromString("00001800-0000-1000-8000-00805F9B34FB");
 
     protected static final int SUCCESS_CONNECT=0;
     protected static final int MESSAGE_READ=1;
@@ -140,10 +143,10 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         //registerReceiver(receiver, filter);
         //filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
 
-
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_UUID);
         registerReceiver(receiver, filter);
         Log.i("Check", "End init()");
     }
@@ -163,33 +166,42 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
 
     @Override
     public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3){
+        Log.i("Check", "onItemClick");
         if (btAdapter.isDiscovering()){
             btAdapter.cancelDiscovery();
+            Log.i("Check", "Discovery is cancelled");
         }
         if (listAdapter.getItem(arg2).contains("(Paired)")){
             BluetoothDevice selectedDevice = devices.get(arg2);
             ConnectThread connect = new ConnectThread(selectedDevice);
             connect.start();
+            Log.i("Check", "ConnectThread.start()");
         } else {
             Toast.makeText(getApplicationContext(), "device is not paired", Toast.LENGTH_SHORT).show();
         }
     }
     private class ConnectThread extends Thread {
-        private final BluetoothSocket mmSocket;
+        private BluetoothSocket mmSocket;
         private final BluetoothDevice mmDevice;
 
         public ConnectThread(BluetoothDevice device) {
             // Use a temporary object that is later assigned to mmSocket,
             // because mmSocket is final
             BluetoothSocket tmp = null;
+
             mmDevice = device;
+
 
             // Get a BluetoothSocket to connect with the given BluetoothDevice
             try {
                 // MY_UUID is the app's UUID string, also used by the server code
                 tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
-            } catch (IOException e) { }
+                Log.i("Check", "create rfcommsocket");
+            } catch (IOException e) {
+                Log.e("ConnnectThread", "Error: ", e);
+            }
             mmSocket = tmp;
+
         }
 
         public void run() {
@@ -200,11 +212,32 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
                 // Connect the device through the socket. This will block
                 // until it succeeds or throws an exception
                 mmSocket.connect();
+                Log.i("Check", "socket connected");
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and get out
+                Log.e("ConnnectThread", "connect IOException: ", connectException);
                 try {
                     mmSocket.close();
-                } catch (IOException closeException) { }
+                } catch (IOException closeException) {
+                    Log.e("ConnnectThread", "Close IOException: ", closeException);
+                }
+
+                try{
+                    Log.i("Check", "trying fallback");
+                    mmSocket = (BluetoothSocket) mmDevice.getClass().getMethod("createRfcommSocket",
+                            new Class[] {int.class} ).invoke(mmDevice,Integer.valueOf(1));
+                    mmSocket.connect();
+
+                } catch (NoSuchMethodException | InvocationTargetException |
+                        IllegalAccessException ex){
+                    Log.e("ConnnectThread", "Exception: ", ex);
+                } catch (IOException ex) {
+                    Log.e("ConnnectThread", "IOException: ", ex);
+                    try{
+                        mmSocket.close();
+                    } catch (IOException e){}
+                }
+
                 return;
             }
 
