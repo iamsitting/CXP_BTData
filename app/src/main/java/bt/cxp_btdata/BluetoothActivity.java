@@ -60,7 +60,6 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         setContentView(R.layout.activity_bluetooth);
         init();
         if(btAdapter==null){
-            Log.i("btadapter", "No BT Detected");
             Toast.makeText(getApplicationContext(), "No BT detected", Toast.LENGTH_SHORT).show();
         } else{
             if(!btAdapter.isEnabled()){
@@ -80,13 +79,12 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
     }
     private void getPairedDevices(){
         devicesArray = btAdapter.getBondedDevices();
-        Log.i("# of devs", Integer.toString(devicesArray.size()));
         if(devicesArray.size()>0){
             for(BluetoothDevice device:devicesArray){
                 pairedDevices.add(device.getName());
-                Log.i("dev_name", device.getName());
             }
         }
+        listAdapter.notifyDataSetChanged();
     }
     private void init(){
         listView = (ListView) findViewById(R.id.listView);
@@ -96,20 +94,23 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         pairedDevices = new ArrayList<String>();
         filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        //filter = new IntentFilter();
         devices = new ArrayList<BluetoothDevice>();
         //Setting up the Broadcast Receiver
         Log.i("Check", "BT init");
 
         receiver = new BroadcastReceiver() {
+
             @Override
             public void onReceive(Context context, Intent intent) {
-                Log.i("Check", "OnReceive");
                 String action = intent.getAction();
                 Log.i("Check Action", action);
-                Log.i("# of p-devs", Integer.toString(pairedDevices.size()));
-                if(BluetoothDevice.ACTION_FOUND.equals(action)){
+
+                if(BluetoothDevice.ACTION_FOUND.equals(action) ){
+
                     Log.i("Check", "DeviceFound");
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    Log.i("Dev Name:", device.getName());
                     devices.add(device);
                     String s = "";
                     for(int a = 0;a<pairedDevices.size();a++){
@@ -132,12 +133,17 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         };
 
 
-        registerReceiver(receiver, filter);
-        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        registerReceiver(receiver, filter);
-        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        registerReceiver(receiver, filter);
-        filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        //registerReceiver(receiver, filter);
+        //filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        //registerReceiver(receiver, filter);
+        //filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        //registerReceiver(receiver, filter);
+        //filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+
+
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(receiver, filter);
         Log.i("Check", "End init()");
     }
