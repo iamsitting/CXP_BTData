@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,7 +26,7 @@ import com.jjoe64.graphview.LineGraphView;
 import com.jjoe64.graphview.GraphView.LegendAlign;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-
+    public static Handler mHandler;
     @Override
     public void onBackPressed(){
         if(BluetoothActivity.connectedThread != null){
@@ -34,59 +35,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    Handler mHandler = new Handler(){
-        @Override
-        public void handleMessage(Message msg){
-            super.handleMessage(msg);
-            switch (msg.what){
-                case BluetoothActivity.SUCCESS_CONNECT:
-                    BluetoothActivity.connectedThread = new BluetoothActivity.ConnectedThread((BluetoothSocket)msg.obj);
-                    Toast.makeText(getApplicationContext(), "Connected!", Toast.LENGTH_SHORT).show();
-                    String s = "Successfully Connected";
-                    BluetoothActivity.connectedThread.start();
-                    break;
-                case BluetoothActivity.MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
-                    String strIncom = new String(readBuf, 0, 5);
+    //public Handler mHandler;
+    //mHandler init was here
 
-                    if(strIncom.indexOf('s')==0 && strIncom.indexOf('.')==2){
-                        strIncom = strIncom.replace("s","");
-                        if (isFloatNumber(strIncom)){
-                            Series.appendData(new GraphView.GraphViewData(graph2LastXValue, Double.parseDouble(strIncom)), AutoScrollX);
 
-                            if (graph2LastXValue >= Xview && Lock == true){
-                                Series.resetData(new GraphView.GraphViewData[] {});
-                                graph2LastXValue = 0;
-                            } else{
-                                graph2LastXValue += 1;
-                            }
 
-                            if (Lock == true){
-                                graphView.setViewPort(0, Xview);
-                            } else {
-                                graphView.setViewPort(graph2LastXValue-Xview, Xview);
-                            }
-
-                            //refresh
-                            GraphView.removeView(graphView);
-                            GraphView.addView(graphView);
-                        }
-
-                    }
-                    break;
-            }
-        }
-
-        public boolean isFloatNumber(String num){
-            try{
-                Double.parseDouble(num);
-            } catch (NumberFormatException nfe){
-                return false;
-            }
-            return true;
-        }
-
-    };
 
     Button bConnect, bDisconnect, bXminus, bXplus;
     ToggleButton tbLock, tbScroll, tbStream;
@@ -133,6 +86,65 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         graphView.setManualYAxisBounds(5, 0);
         graphView.addSeries(Series);
         GraphView.addView(graphView);
+
+        mHandler = new Handler(){
+            @Override
+            public void handleMessage(Message msg){
+                super.handleMessage(msg);
+                Log.i("msg.what", Integer.toString(msg.what));
+                switch (msg.what){
+                    case BluetoothActivity.SUCCESS_CONNECT:
+                        Log.i("Check", "SUCCESS_CONNECT");
+                        BluetoothActivity.connectedThread = new BluetoothActivity.ConnectedThread((BluetoothSocket)msg.obj);
+                        Toast.makeText(getApplicationContext(), "Connected!", Toast.LENGTH_SHORT).show();
+                        Log.i("Check", "TOASTED");
+                        BluetoothActivity.connectedThread.start();
+                        break;
+                    case BluetoothActivity.MESSAGE_READ:
+                        byte[] readBuf = (byte[]) msg.obj;
+                        String strIncom = new String(readBuf, 0, 5);
+
+                        if(strIncom.indexOf('s')==0 && strIncom.indexOf('.')==2){
+                            strIncom = strIncom.replace("s","");
+                            if (isFloatNumber(strIncom)){
+                                Series.appendData(new GraphView.GraphViewData(graph2LastXValue, Double.parseDouble(strIncom)), AutoScrollX);
+
+                                if (graph2LastXValue >= Xview && Lock == true){
+                                    Series.resetData(new GraphView.GraphViewData[] {});
+                                    graph2LastXValue = 0;
+                                } else{
+                                    graph2LastXValue += 1;
+                                }
+
+                                if (Lock == true){
+                                    graphView.setViewPort(0, Xview);
+                                } else {
+                                    graphView.setViewPort(graph2LastXValue-Xview, Xview);
+                                }
+
+                                //refresh
+                                GraphView.removeView(graphView);
+                                GraphView.addView(graphView);
+                            }
+
+                        }
+                        break;
+                    default:
+                        Log.i("check", "Default case");
+                        Log.i("msg.what", Integer.toString(msg.what));
+                }
+            }
+
+            public boolean isFloatNumber(String num){
+                try{
+                    Double.parseDouble(num);
+                } catch (NumberFormatException nfe){
+                    return false;
+                }
+                return true;
+            }
+
+        };
 
     }
 

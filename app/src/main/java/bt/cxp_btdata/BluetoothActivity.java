@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -38,10 +39,10 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         }
     }
 
-    public static void getHandler(Handler handler){
-        mHandler = handler;
-    }
-    static Handler mHandler = new Handler();
+    //public static void getHandler(Handler handler){
+    //    mHandler = handler;
+    //}
+    //static Handler mHandler = new Handler(Looper.getMainLooper());
 
     static ConnectedThread connectedThread;
     public static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -190,6 +191,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         private BluetoothSocket mmSocket;
         private final BluetoothDevice mmDevice;
         private final boolean secure;
+        private boolean fallback;
         private BluetoothSocket fbSocket;
 
         public ConnectThread(BluetoothDevice device) {
@@ -199,6 +201,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
 
             mmDevice = device;
             secure = true;
+            fallback = false;
 
 
 
@@ -249,6 +252,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
                         fbSocket = (BluetoothSocket) m.invoke(mmSocket.getRemoteDevice(), params);
                         fbSocket.connect();
                         Log.i("check","Connection");
+                        fallback = true;
                         break;
                     } catch (NoSuchMethodException | InvocationTargetException |
                             IllegalAccessException ex){
@@ -280,14 +284,24 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
             }
 
             // Do work to manage the connection (in a separate thread)
-            Log.i("Check", "success connect");
-            mHandler.obtainMessage(SUCCESS_CONNECT, mmSocket).sendToTarget();
+            if (fallback){
+
+                MainActivity.mHandler.obtainMessage(SUCCESS_CONNECT, fbSocket).sendToTarget();
+
+                Log.i("Check", "connected to fallback");
+
+            }
+            else {
+                MainActivity.mHandler.obtainMessage(SUCCESS_CONNECT, mmSocket).sendToTarget();
+            }
+
         }
 
         /** Will cancel an in-progress connection, and close the socket */
         public void cancel() {
             try {
-                mmSocket.close();
+                if (fallback) fbSocket.close();
+                else mmSocket.close();
             } catch (IOException e) { }
         }
     }
@@ -329,7 +343,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
                     // Send the obtained bytes to the UI activity
-                    mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
+                    MainActivity.mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
                             .sendToTarget();
                 } catch (IOException e) {
                     break;
