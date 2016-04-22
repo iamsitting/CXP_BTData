@@ -89,6 +89,7 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         devicesArray = btAdapter.getBondedDevices();
         if(devicesArray.size()>0){
             for(BluetoothDevice device:devicesArray){
+                Log.i("Check", device.getName());
                 pairedDevices.add(device.getName());
             }
         }
@@ -118,13 +119,15 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
 
                     Log.i("Check", "DeviceFound");
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    Log.i("Dev Name:", device.getName());
+                    //Log.i("Dev Name:", device.getName());
                     devices.add(device);
                     String s = "";
                     for(int a = 0;a<pairedDevices.size();a++){
-                        if(device.getName().equals(pairedDevices.get(a))){
-                            s = "(Paired)";
-                            break;
+                        if((device.getName() != null)&&(device.getName().length() > 0)){
+                            if(device.getName().equals(pairedDevices.get(a))){
+                                s = "(Paired)";
+                                break;
+                            }
                         }
                     }
                     listAdapter.add(device.getName()+" "+s+" "+"\n"+device.getAddress());
@@ -141,18 +144,18 @@ public class BluetoothActivity extends AppCompatActivity implements AdapterView.
         };
 
 
-        registerReceiver(receiver, filter);
-        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        registerReceiver(receiver, filter);
-        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        registerReceiver(receiver, filter);
-        filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-
-        //filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        //filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        //filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-        //filter.addAction(BluetoothDevice.ACTION_UUID);
         //registerReceiver(receiver, filter);
+        //filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        //registerReceiver(receiver, filter);
+        //filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        //registerReceiver(receiver, filter);
+        //filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_UUID);
+        registerReceiver(receiver, filter);
         Log.i("Check", "End init()");
     }
 
